@@ -4,9 +4,8 @@ import javax.swing.*;
 import java.awt.*;
 
 public class SkillsGUI extends JDialog {
-    private final JButton[] skillButtons = new JButton[6];  // AÑADIR 'final'
+    private final JButton[] skillButtons = new JButton[6];
 
-    @SuppressWarnings("unused")  // SUPRIMIR WARNING
     public SkillsGUI(JFrame parent) {
         super(parent, "Habilidades - Dragon Quest VIII", true);
         setSize(500, 400);
@@ -36,13 +35,22 @@ public class SkillsGUI extends JDialog {
         Color[] skillColors = {Color.RED, Color.ORANGE, Color.CYAN, Color.YELLOW, Color.GRAY, Color.MAGENTA};
 
         for (int i = 0; i < 6; i++) {
+            // Crear copias finales de las variables para usar en la lambda
+            final int index = i;
+            final String skillName = skillNames[i];
+
             skillButtons[i] = new JButton("<html><center>" + skillIcons[i] + "<br>" + skillNames[i] +
                     "<br><small>MP: " + (i * 5 + 10) + "</small></center></html>");
             skillButtons[i].setFont(new Font("Serif", Font.BOLD, 14));
             skillButtons[i].setBackground(skillColors[i]);
             skillButtons[i].setForeground(Color.WHITE);
             skillButtons[i].setFocusPainted(false);
-            skillButtons[i].addActionListener(e -> useSkill(skillNames[i]));
+
+            // Usar la copia final en la lambda
+            skillButtons[i].addActionListener(e -> useSkill(skillName));
+
+            // Otra opción: usar el array directamente
+            // skillButtons[i].addActionListener(e -> useSkill(skillNames[index]));
 
             skillsPanel.add(skillButtons[i]);
         }

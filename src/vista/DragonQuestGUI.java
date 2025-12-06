@@ -3,6 +3,7 @@ package vista;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.Random;
 
 public class DragonQuestGUI extends JFrame {
     // Paneles principales
@@ -19,33 +20,46 @@ public class DragonQuestGUI extends JFrame {
     private JProgressBar[] heroMpBars = new JProgressBar[4];
     private JProgressBar[] enemyHpBars = new JProgressBar[4];
 
+    // Componentes de estadísticas
+    private JLabel levelLabel;
+    private JLabel expLabel;
+    private JLabel goldLabel;
+    private JLabel turnLabel;
+
+    // Área de texto para diálogos
+    private JTextArea dialogueArea;
+
     // Botones de acción
     private JButton attackButton;
     private JButton skillButton;
     private JButton itemButton;
     private JButton defendButton;
     private JButton fleeButton;
+    private JButton inventoryButton;
 
-    // Área de texto para diálogos
-    private JTextArea dialogueArea;
-
-    // Imágenes
-    private ImageIcon heroIcon;
-    private ImageIcon enemyIcon;
-    private ImageIcon backgroundImage;
+    // Variables de estado
+    private int currentTurn = 1;
+    private int gold = 2500;
+    private int experience = 1250;
+    private int level = 15;
 
     // Colores estilo Dragon Quest
-    private final Color DQ_BROWN = new Color(139, 69, 19);
-    private final Color DQ_GOLD = new Color(255, 215, 0);
-    private final Color DQ_RED = new Color(178, 34, 34);
-    private final Color DQ_BLUE = new Color(30, 144, 255);
-    private final Color DQ_GREEN = new Color(50, 205, 50);
-    private final Color DQ_BEIGE = new Color(245, 245, 220);
+    private final Color DQ_BROWN = new Color(101, 67, 33);
+    private final Color DQ_GOLD = new Color(255, 204, 0);
+    private final Color DQ_RED = new Color(204, 0, 0);
+    private final Color DQ_BLUE = new Color(0, 102, 204);
+    private final Color DQ_GREEN = new Color(0, 153, 0);
+    private final Color DQ_PURPLE = new Color(102, 0, 153);
+    private final Color DQ_DARK = new Color(34, 34, 34);
+
+    // Nombres de personajes
+    private String[] heroNames = {"HÉROE", "YANGUS", "JESSICA", "ANGELO"};
+    private String[] enemyNames = {"SLIME", "DRAGÓN NEGRO", "GOBLIN", "ESPECTRO"};
 
     public DragonQuestGUI() {
-        setTitle("Dragon Quest VIII - La Maldición del Rey");
+        setTitle("DRAGON QUEST VIII - La Maldición del Rey");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1024, 768);
+        setSize(1200, 800);
         setResizable(false);
         setLocationRelativeTo(null);
 
@@ -56,273 +70,696 @@ public class DragonQuestGUI extends JFrame {
             e.printStackTrace();
         }
 
-
+        initializeComponents();
+        setupLayout();
+        setupListeners();
 
         setVisible(true);
     }
 
-        try {
-            }
-        } catch (Exception e) {
+    // ========== MÉTODOS PÚBLICOS PARA ACTUALIZAR ESTADÍSTICAS ==========
+
+    /**
+     * Actualiza las estadísticas de un héroe
+     * @param heroIndex Índice del héroe (0-3)
+     * @param hpActual HP actual
+     * @param hpMax HP máximo
+     * @param mpActual MP actual
+     * @param mpMax MP máximo
+     */
+    public void updateHeroStats(int heroIndex, int hpActual, int hpMax, int mpActual, int mpMax) {
+        if (heroIndex >= 0 && heroIndex < 4) {
+            heroHpBars[heroIndex].setMaximum(hpMax);
+            heroHpBars[heroIndex].setValue(hpActual);
+            heroHpBars[heroIndex].setString("HP: " + hpActual + "/" + hpMax);
+
+            heroMpBars[heroIndex].setMaximum(mpMax);
+            heroMpBars[heroIndex].setValue(mpActual);
+            heroMpBars[heroIndex].setString("MP: " + mpActual + "/" + mpMax);
         }
     }
 
-
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-        // Fondo circular
-        g2d.setColor(color);
-        g2d.fillOval(2, 2, width - 4, height - 4);
-
-        // Borde
-        g2d.setColor(Color.BLACK);
-        g2d.setStroke(new BasicStroke(3));
-        g2d.drawOval(2, 2, width - 4, height - 4);
-
-        // Texto
-        g2d.setColor(Color.WHITE);
-        g2d.setFont(new Font("Serif", Font.BOLD, 24));
-        FontMetrics fm = g2d.getFontMetrics();
-
-        g2d.dispose();
+    /**
+     * Actualiza las estadísticas de un enemigo
+     * @param enemyIndex Índice del enemigo (0-3)
+     * @param hpActual HP actual
+     * @param hpMax HP máximo
+     */
+    public void updateEnemyStats(int enemyIndex, int hpActual, int hpMax) {
+        if (enemyIndex >= 0 && enemyIndex < 4) {
+            enemyHpBars[enemyIndex].setMaximum(hpMax);
+            enemyHpBars[enemyIndex].setValue(hpActual);
+            enemyHpBars[enemyIndex].setString("HP: " + hpActual + "/" + hpMax);
+        }
     }
 
-        mainPanel = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2d = (Graphics2D) g;
-
-                if (backgroundImage != null) {
-                    g2d.drawImage(backgroundImage.getImage(), 0, 0, getWidth(), getHeight(), this);
-                } else {
-                    g2d.setPaint(gradient);
-                    g2d.fillRect(0, 0, getWidth(), getHeight());
-
-                    }
-                }
-            }
-        };
-
-
-        mainPanel.add(battlePanel, BorderLayout.CENTER);
-        mainPanel.add(statsPanel, BorderLayout.EAST);
-        mainPanel.add(dialoguePanel, BorderLayout.SOUTH);
-        mainPanel.add(menuPanel, BorderLayout.WEST);
-
-        add(mainPanel);
+    /**
+     * Agrega un mensaje al área de diálogo
+     * @param message Mensaje a mostrar
+     */
+    public void addDialogue(String message) {
+        String current = dialogueArea.getText();
+        if (!current.isEmpty()) {
+            dialogueArea.setText(current + "\n> " + message);
+        } else {
+            dialogueArea.setText("> " + message);
+        }
+        dialogueArea.setCaretPosition(dialogueArea.getDocument().getLength());
     }
 
-        battlePanel = new JPanel(new GridBagLayout());
-        battlePanel.setOpaque(false);
+    // ========== MÉTODOS PRIVADOS ==========
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
-
-                BorderFactory.createLineBorder(DQ_GOLD, 3),
-                "HÉROES",
-                javax.swing.border.TitledBorder.CENTER,
-                javax.swing.border.TitledBorder.TOP,
-                new Font("Serif", Font.BOLD, 16),
-                DQ_GOLD
-        ));
-
-
+    private void initializeComponents() {
+        // Inicializar etiquetas de héroes
         for (int i = 0; i < 4; i++) {
-
-            heroLabels[i].setFont(new Font("Serif", Font.BOLD, 14));
+            heroLabels[i] = new JLabel(heroNames[i]);
+            heroLabels[i].setFont(new Font("Arial", Font.BOLD, 16));
             heroLabels[i].setForeground(Color.WHITE);
+            heroLabels[i].setHorizontalAlignment(SwingConstants.CENTER);
 
             heroHpBars[i] = new JProgressBar(0, 100);
             heroHpBars[i].setValue(100);
-            heroHpBars[i].setBackground(new Color(100, 0, 0));
+            heroHpBars[i].setForeground(new Color(0, 200, 0));
+            heroHpBars[i].setBackground(new Color(50, 0, 0));
             heroHpBars[i].setStringPainted(true);
+            heroHpBars[i].setFont(new Font("Arial", Font.BOLD, 10));
             heroHpBars[i].setString("HP: 100/100");
 
             heroMpBars[i] = new JProgressBar(0, 100);
             heroMpBars[i].setValue(100);
-            heroMpBars[i].setBackground(new Color(0, 0, 100));
+            heroMpBars[i].setForeground(new Color(100, 100, 255));
+            heroMpBars[i].setBackground(new Color(0, 0, 50));
             heroMpBars[i].setStringPainted(true);
-            heroMpBars[i].setString("MP: 50/50");
-
-
-
-
+            heroMpBars[i].setFont(new Font("Arial", Font.BOLD, 10));
+            heroMpBars[i].setString("MP: 100/100");
         }
 
-                BorderFactory.createLineBorder(Color.RED, 3),
-                "ENEMIGOS",
-                javax.swing.border.TitledBorder.CENTER,
-                javax.swing.border.TitledBorder.TOP,
-                new Font("Serif", Font.BOLD, 16),
-                Color.RED
-        ));
-
-
+        // Inicializar etiquetas de enemigos
         for (int i = 0; i < 4; i++) {
-
-            enemyLabels[i].setFont(new Font("Serif", Font.BOLD, 14));
+            enemyLabels[i] = new JLabel(enemyNames[i]);
+            enemyLabels[i].setFont(new Font("Arial", Font.BOLD, 16));
             enemyLabels[i].setForeground(Color.WHITE);
+            enemyLabels[i].setHorizontalAlignment(SwingConstants.CENTER);
 
             enemyHpBars[i] = new JProgressBar(0, 100);
             enemyHpBars[i].setValue(100);
-            enemyHpBars[i].setBackground(new Color(100, 0, 0));
+            enemyHpBars[i].setForeground(new Color(255, 100, 100));
+            enemyHpBars[i].setBackground(new Color(50, 0, 0));
             enemyHpBars[i].setStringPainted(true);
-
-
-
+            enemyHpBars[i].setFont(new Font("Arial", Font.BOLD, 10));
+            enemyHpBars[i].setString("HP: 100/100");
         }
 
-        // Agregar paneles al battle panel
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.weightx = 0.4;
-        gbc.weighty = 1.0;
-        gbc.fill = GridBagConstraints.BOTH;
+        // Inicializar botones
+        attackButton = createStyledButton("⚔️ ATACAR", DQ_RED);
+        skillButton = createStyledButton("✨ HABILIDAD", DQ_BLUE);
+        itemButton = createStyledButton("💊 OBJETO", DQ_GREEN);
+        defendButton = createStyledButton("🛡️ DEFENDER", DQ_GOLD);
+        fleeButton = createStyledButton("🏃‍♂️ HUIR", DQ_PURPLE);
+        inventoryButton = createStyledButton("🎒 INVENTARIO", DQ_BROWN);
 
-        gbc.gridx = 2;
+        // Inicializar etiquetas de estadísticas
+        levelLabel = new JLabel("Nivel: " + level);
+        expLabel = new JLabel("Exp: " + experience + "/2800");
+        goldLabel = new JLabel("Oro: " + gold);
+        turnLabel = new JLabel("Turno: " + currentTurn);
 
-
-        JLabel vsLabel = new JLabel("⚔️ VS ⚔️");
-        vsLabel.setFont(new Font("Serif", Font.BOLD, 36));
-        vsLabel.setForeground(DQ_GOLD);
-        vsLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-
-
-        gbc.gridx = 1;
-        gbc.weightx = 0.2;
-    }
-
-        statsPanel.setPreferredSize(new Dimension(200, 0));
-        statsPanel.setBackground(new Color(0, 0, 0, 200));
-        statsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        // Título
-
-        };
-
-            JLabel statLabel = new JLabel(stat);
-            statLabel.setFont(new Font("Monospaced", Font.PLAIN, 12));
-            statLabel.setForeground(Color.WHITE);
-            statsPanel.add(statLabel);
-        }
-    }
-
-        dialoguePanel = new JPanel(new BorderLayout());
-        dialoguePanel.setPreferredSize(new Dimension(0, 150));
-        dialoguePanel.setBackground(new Color(0, 0, 0, 220));
-        dialoguePanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(DQ_GOLD, 2),
-                BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        ));
-
+        // Inicializar área de diálogo
         dialogueArea = new JTextArea();
         dialogueArea.setEditable(false);
         dialogueArea.setLineWrap(true);
         dialogueArea.setWrapStyleWord(true);
-        dialogueArea.setFont(new Font("Serif", Font.PLAIN, 14));
+        dialogueArea.setFont(new Font("Courier New", Font.PLAIN, 14));
         dialogueArea.setForeground(Color.WHITE);
-        dialogueArea.setBackground(new Color(0, 0, 0, 0));
-                "Los monstruos amenazan el reino de Trodain.\n" +
-                "¡Héroes, defiendan nuestro hogar!");
-
-        JScrollPane scrollPane = new JScrollPane(dialogueArea);
-        scrollPane.setOpaque(false);
-        scrollPane.getViewport().setOpaque(false);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder());
-
-        dialoguePanel.add(scrollPane, BorderLayout.CENTER);
-
-
+        dialogueArea.setBackground(new Color(0, 0, 0, 200));
     }
 
-        menuPanel.setPreferredSize(new Dimension(150, 0));
-        menuPanel.setBackground(new Color(0, 0, 0, 200));
-        menuPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-
-
-        menuPanel.add(attackButton);
-        menuPanel.add(skillButton);
-        menuPanel.add(itemButton);
-        menuPanel.add(defendButton);
-        menuPanel.add(fleeButton);
-        menuPanel.add(inventoryButton);
-    }
-
+    private JButton createStyledButton(String text, Color color) {
+        JButton button = new JButton(text);
+        button.setFont(new Font("Arial", Font.BOLD, 12));
+        button.setForeground(Color.WHITE);
+        button.setBackground(color);
+        button.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(Color.BLACK, 2),
+                BorderFactory.createEmptyBorder(8, 5, 8, 5)
         ));
+        button.setFocusPainted(false);
+        button.setPreferredSize(new Dimension(140, 45));
+        button.setMaximumSize(new Dimension(140, 45));
 
-        // Efecto hover
+        // Usar variable final para la lambda
+        final Color finalColor = color;
+
+        button.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
+                button.setBackground(finalColor.brighter());
+                button.setBorder(BorderFactory.createCompoundBorder(
                         BorderFactory.createLineBorder(Color.YELLOW, 2),
+                        BorderFactory.createEmptyBorder(8, 5, 8, 5)
                 ));
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
+                button.setBackground(finalColor);
+                button.setBorder(BorderFactory.createCompoundBorder(
                         BorderFactory.createLineBorder(Color.BLACK, 2),
+                        BorderFactory.createEmptyBorder(8, 5, 8, 5)
                 ));
             }
         });
 
+        return button;
+    }
+
+    private void setupLayout() {
+        mainPanel = new JPanel(new BorderLayout(5, 5));
+        mainPanel.setBackground(DQ_DARK);
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // Panel de batalla principal
+        battlePanel = createBattlePanel();
+
+        // Panel de menú lateral
+        menuPanel = createMenuPanel();
+
+        // Panel de información
+        statsPanel = createStatsPanel();
+
+        // Panel de diálogo y controles
+        dialoguePanel = createDialoguePanel();
+
+        // Agregar paneles al panel principal
+        mainPanel.add(battlePanel, BorderLayout.CENTER);
+        mainPanel.add(menuPanel, BorderLayout.WEST);
+        mainPanel.add(statsPanel, BorderLayout.EAST);
+        mainPanel.add(dialoguePanel, BorderLayout.SOUTH);
+
+        add(mainPanel);
+    }
+
+    private JPanel createBattlePanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setOpaque(false);
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.BOTH;
+
+        // Panel de héroes - Lado izquierdo
+        JPanel heroPanel = new JPanel(new GridLayout(4, 1, 0, 15));
+        heroPanel.setOpaque(false);
+        heroPanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(DQ_BLUE, 3),
+                " HÉROES ",
+                javax.swing.border.TitledBorder.CENTER,
+                javax.swing.border.TitledBorder.TOP,
+                new Font("Arial", Font.BOLD, 18),
+                DQ_BLUE
+        ));
+
+        for (int i = 0; i < 4; i++) {
+            JPanel charPanel = new JPanel(new BorderLayout(10, 5));
+            charPanel.setOpaque(false);
+            charPanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+
+            JPanel rightPanel = new JPanel(new GridLayout(3, 1, 2, 2));
+            rightPanel.setOpaque(false);
+
+            heroLabels[i].setFont(new Font("Arial", Font.BOLD, 16));
+            heroLabels[i].setForeground(DQ_GOLD);
+            rightPanel.add(heroLabels[i]);
+            rightPanel.add(heroHpBars[i]);
+            rightPanel.add(heroMpBars[i]);
+
+            charPanel.add(rightPanel, BorderLayout.CENTER);
+
+            heroPanel.add(charPanel);
         }
 
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 0.35;
+        gbc.weighty = 1.0;
+        panel.add(heroPanel, gbc);
 
-                break;
-                break;
-                break;
-        timer.setRepeats(false);
-        timer.start();
-                        break;
-                }
-                break;
-            }
+        // VS Label en el centro
+        JPanel centerPanel = new JPanel(new GridBagLayout());
+        centerPanel.setOpaque(false);
+
+        JLabel vsLabel = new JLabel("⚔️ VS ⚔️");
+        vsLabel.setFont(new Font("Arial", Font.BOLD, 48));
+        vsLabel.setForeground(DQ_GOLD);
+        vsLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+        centerPanel.add(vsLabel);
+
+        gbc.gridx = 1;
+        gbc.weightx = 0.3;
+        gbc.fill = GridBagConstraints.BOTH;
+        panel.add(centerPanel, gbc);
+
+        // Panel de enemigos - Lado derecho
+        JPanel enemyPanel = new JPanel(new GridLayout(4, 1, 0, 15));
+        enemyPanel.setOpaque(false);
+        enemyPanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(DQ_RED, 3),
+                " ENEMIGOS ",
+                javax.swing.border.TitledBorder.CENTER,
+                javax.swing.border.TitledBorder.TOP,
+                new Font("Arial", Font.BOLD, 18),
+                DQ_RED
+        ));
+
+        for (int i = 0; i < 4; i++) {
+            JPanel charPanel = new JPanel(new BorderLayout(10, 5));
+            charPanel.setOpaque(false);
+            charPanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+
+            JPanel leftPanel = new JPanel(new GridLayout(2, 1, 2, 2));
+            leftPanel.setOpaque(false);
+
+            enemyLabels[i].setFont(new Font("Arial", Font.BOLD, 16));
+            enemyLabels[i].setForeground(new Color(255, 150, 150));
+            leftPanel.add(enemyLabels[i]);
+            leftPanel.add(enemyHpBars[i]);
+
+            charPanel.add(leftPanel, BorderLayout.CENTER);
+
+            enemyPanel.add(charPanel);
         }
+
+        gbc.gridx = 2;
+        gbc.weightx = 0.35;
+        panel.add(enemyPanel, gbc);
+
+        return panel;
     }
 
+    private JPanel createMenuPanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(new Color(40, 40, 40, 230));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(DQ_GOLD, 2),
+                BorderFactory.createEmptyBorder(15, 10, 15, 10)
+        ));
+        panel.setPreferredSize(new Dimension(180, 0));
 
+        JLabel title = new JLabel("MENÚ");
+        title.setFont(new Font("Arial", Font.BOLD, 24));
+        title.setForeground(DQ_GOLD);
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        panel.add(title);
 
-        // Efecto visual
-        timer.setRepeats(false);
-        timer.start();
-            timer.setRepeats(false);
-            timer.start();
+        panel.add(Box.createRigidArea(new Dimension(0, 20)));
 
-    }
+        // Agregar botones
+        panel.add(attackButton);
+        panel.add(Box.createRigidArea(new Dimension(0, 12)));
+        panel.add(skillButton);
+        panel.add(Box.createRigidArea(new Dimension(0, 12)));
+        panel.add(itemButton);
+        panel.add(Box.createRigidArea(new Dimension(0, 12)));
+        panel.add(defendButton);
+        panel.add(Box.createRigidArea(new Dimension(0, 12)));
+        panel.add(fleeButton);
+        panel.add(Box.createRigidArea(new Dimension(0, 12)));
+        panel.add(inventoryButton);
 
+        panel.add(Box.createVerticalGlue());
 
-        timer.setRepeats(false);
-        timer.start();
-    }
+        // Controles
+        JPanel controlsPanel = new JPanel();
+        controlsPanel.setLayout(new BoxLayout(controlsPanel, BoxLayout.Y_AXIS));
+        controlsPanel.setOpaque(false);
+        controlsPanel.setBorder(BorderFactory.createEmptyBorder(20, 5, 5, 5));
 
-            }
+        JLabel controlsTitle = new JLabel("CONTROLES");
+        controlsTitle.setFont(new Font("Arial", Font.BOLD, 14));
+        controlsTitle.setForeground(Color.WHITE);
+        controlsTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        controlsPanel.add(controlsTitle);
 
+        controlsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
 
-        }
-    }
-
-    }
-
-                "Yangus: ¡No te preocupes, jefe! ¡Yo los tengo!",
-                "Jessica: ¡Mi magia los reducirá a cenizas!",
-                "Angelo: ¡La luz nos protegerá!",
-                "Goblin: ¡Grrr! ¡Destruiremos a todos!",
-                "El Dragón Negro ruge ferozmente...",
+        String[] controls = {
+                "Flechas: Seleccionar",
+                "Enter: Confirmar",
+                "Espacio: Cancelar",
+                "Esc: Menú"
         };
 
+        for (String control : controls) {
+            JLabel controlLabel = new JLabel(control);
+            controlLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+            controlLabel.setForeground(Color.LIGHT_GRAY);
+            controlLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            controlsPanel.add(controlLabel);
+        }
+
+        panel.add(controlsPanel);
+
+        return panel;
     }
 
+    private JPanel createStatsPanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(new Color(40, 40, 40, 230));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(DQ_BLUE, 2),
+                BorderFactory.createEmptyBorder(15, 15, 15, 15)
+        ));
+        panel.setPreferredSize(new Dimension(220, 0));
 
+        JLabel title = new JLabel("ESTADO");
+        title.setFont(new Font("Arial", Font.BOLD, 24));
+        title.setForeground(DQ_GOLD);
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        panel.add(title);
+
+        panel.add(Box.createRigidArea(new Dimension(0, 20)));
+
+        // Estadísticas detalladas
+        String[][] stats = {
+                {"Nivel:", "15"},
+                {"Exp:", "1250/2800"},
+                {"Oro:", "2,500"},
+                {"Turno:", "3"},
+                {"Atq:", "85"},
+                {"Def:", "72"},
+                {"Agi:", "68"},
+                {"Mag:", "92"},
+                {"Res:", "75"}
+        };
+
+        for (String[] stat : stats) {
+            JPanel statPanel = new JPanel(new BorderLayout());
+            statPanel.setOpaque(false);
+            statPanel.setMaximumSize(new Dimension(200, 25));
+
+            JLabel nameLabel = new JLabel(stat[0]);
+            nameLabel.setFont(new Font("Arial", Font.BOLD, 14));
+            nameLabel.setForeground(Color.LIGHT_GRAY);
+
+            JLabel valueLabel = new JLabel(stat[1]);
+            valueLabel.setFont(new Font("Arial", Font.BOLD, 14));
+            valueLabel.setForeground(Color.WHITE);
+            valueLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+
+            statPanel.add(nameLabel, BorderLayout.WEST);
+            statPanel.add(valueLabel, BorderLayout.EAST);
+
+            panel.add(statPanel);
+            panel.add(Box.createRigidArea(new Dimension(0, 8)));
+        }
+
+        panel.add(Box.createVerticalGlue());
+
+        // Efectos de estado
+        JPanel statusPanel = new JPanel();
+        statusPanel.setLayout(new BoxLayout(statusPanel, BoxLayout.Y_AXIS));
+        statusPanel.setOpaque(false);
+        statusPanel.setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(DQ_GREEN, 1),
+                " ESTADOS ",
+                javax.swing.border.TitledBorder.CENTER,
+                javax.swing.border.TitledBorder.TOP,
+                new Font("Arial", Font.BOLD, 12),
+                DQ_GREEN
+        ));
+
+        String[] statuses = {"Normal", "Protegido", "Concentrado"};
+        for (String status : statuses) {
+            JLabel statusLabel = new JLabel("• " + status);
+            statusLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+            statusLabel.setForeground(Color.WHITE);
+            statusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            statusPanel.add(statusLabel);
+        }
+
+        panel.add(statusPanel);
+
+        return panel;
     }
 
+    private JPanel createDialoguePanel() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setPreferredSize(new Dimension(0, 120));
+        panel.setBackground(new Color(0, 0, 0, 220));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(DQ_GOLD, 2),
+                BorderFactory.createEmptyBorder(10, 15, 10, 15)
+        ));
+
+        // Panel superior: información de turno
+        JPanel turnPanel = new JPanel(new BorderLayout());
+        turnPanel.setOpaque(false);
+
+        JLabel turnLabel = new JLabel("TURNO: Héroe (Seleccionado: Atacar)");
+        turnLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        turnLabel.setForeground(DQ_GOLD);
+        turnPanel.add(turnLabel, BorderLayout.WEST);
+
+        JLabel enemyInfo = new JLabel("Enemigos: 4 vivos | Héroes: 4 vivos");
+        enemyInfo.setFont(new Font("Arial", Font.PLAIN, 12));
+        enemyInfo.setForeground(Color.LIGHT_GRAY);
+        turnPanel.add(enemyInfo, BorderLayout.EAST);
+
+        panel.add(turnPanel, BorderLayout.NORTH);
+
+        // Área de diálogo
+        JScrollPane scrollPane = new JScrollPane(dialogueArea);
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
+        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(100, 100, 100), 1));
+        scrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(10, 0));
+
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        return panel;
     }
 
+    private void setupListeners() {
+        attackButton.addActionListener(e -> performAttack());
+        skillButton.addActionListener(e -> showSkillMenu());
+        itemButton.addActionListener(e -> showItemMenu());
+        defendButton.addActionListener(e -> defendAction());
+        fleeButton.addActionListener(e -> fleeAction());
+        inventoryButton.addActionListener(e -> showInventory());
     }
 
+    private void performAttack() {
+        Random rand = new Random();
+        int damage = rand.nextInt(30) + 20;
+        int target = rand.nextInt(4);
+
+        // Usar variables final para la lambda
+        final int finalTarget = target;
+        final int finalDamage = damage;
+        final String enemyName = enemyNames[target];
+        final String heroName = heroNames[0];
+
+        int currentHp = enemyHpBars[target].getValue();
+        int maxHp = enemyHpBars[target].getMaximum();
+        int newHp = currentHp - damage;
+        if (newHp < 0) newHp = 0;
+        enemyHpBars[target].setValue(newHp);
+        enemyHpBars[target].setString("HP: " + newHp + "/" + maxHp);
+
+        addDialogue("¡" + heroName + " ataca a " + enemyName + " causando " + finalDamage + " puntos de daño!");
+
+        // Contrataque enemigo
+        if (newHp > 0) {
+            Timer timer = new Timer(1000, ev -> {
+                int enemyDamage = rand.nextInt(20) + 10;
+                int heroTarget = rand.nextInt(4);
+
+                // Usar variables final para la lambda interna
+                final int finalHeroTarget = heroTarget;
+                final int finalEnemyDamage = enemyDamage;
+                final String attackingEnemyName = enemyNames[finalTarget];
+                final String attackedHeroName = heroNames[finalHeroTarget];
+
+                int heroCurrentHp = heroHpBars[heroTarget].getValue();
+                int heroMaxHp = heroHpBars[heroTarget].getMaximum();
+                int heroNewHp = heroCurrentHp - enemyDamage;
+                if (heroNewHp < 0) heroNewHp = 0;
+                heroHpBars[heroTarget].setValue(heroNewHp);
+                heroHpBars[heroTarget].setString("HP: " + heroNewHp + "/" + heroMaxHp);
+
+                addDialogue("¡" + attackingEnemyName + " contraataca a " +
+                        attackedHeroName + " causando " +
+                        finalEnemyDamage + " puntos de daño!");
+            });
+            timer.setRepeats(false);
+            timer.start();
+        }
     }
+
+    private void showSkillMenu() {
+        String[] skills = {"Curar", "Bola de Fuego", "Rayo", "Aumentar Defensa", "Disminuir Ataque"};
+
+        SwingUtilities.invokeLater(() -> {
+            // Usar variable final
+            final JFrame parentFrame = this;
+
+            String skill = (String) JOptionPane.showInputDialog(
+                    parentFrame,
+                    "Selecciona una habilidad:",
+                    "HABILIDADES",
+                    JOptionPane.PLAIN_MESSAGE,
+                    null,
+                    skills,
+                    skills[0]
+            );
+
+            if (skill != null) {
+                addDialogue("¡Usando habilidad: " + skill + "!");
+            }
+        });
+    }
+
+    private void showItemMenu() {
+        String[] items = {"Poción (x5)", "Éter (x3)", "Antídoto (x2)", "Revivir (x1)", "Bomba (x4)"};
+
+        SwingUtilities.invokeLater(() -> {
+            // Usar variable final
+            final JFrame parentFrame = this;
+
+            String item = (String) JOptionPane.showInputDialog(
+                    parentFrame,
+                    "Selecciona un objeto:",
+                    "INVENTARIO RÁPIDO",
+                    JOptionPane.PLAIN_MESSAGE,
+                    null,
+                    items,
+                    items[0]
+            );
+
+            if (item != null) {
+                addDialogue("¡Usando: " + item + "!");
+            }
+        });
+    }
+
+    private void defendAction() {
+        addDialogue("¡El equipo se defiende! Defensa aumentada por 1 turno.");
+    }
+
+    private void fleeAction() {
+        SwingUtilities.invokeLater(() -> {
+            // Usar variable final
+            final JFrame parentFrame = this;
+
+            int result = JOptionPane.showConfirmDialog(
+                    parentFrame,
+                    "¿Intentar huir de la batalla?",
+                    "HUIR",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE
+            );
+
+            if (result == JOptionPane.YES_OPTION) {
+                Random rand = new Random();
+                if (rand.nextBoolean()) {
+                    addDialogue("¡Escaparon exitosamente!");
+                } else {
+                    addDialogue("¡No pudieron escapar!");
+                }
+            }
+        });
+    }
+
+    private void showInventory() {
+        String inventory = "INVENTARIO COMPLETO\n\n" +
+                "➤ Consumibles:\n" +
+                "   Pociones: 5\n" +
+                "   Éteres: 3\n" +
+                "   Antídotos: 2\n" +
+                "   Revivir: 1\n" +
+                "   Bombas: 4\n\n" +
+                "➤ Equipo:\n" +
+                "   Espada de Acero\n" +
+                "   Armadura de Cuero\n" +
+                "   Escudo de Madera\n\n" +
+                "➤ Clave:\n" +
+                "   Llave Antigua\n" +
+                "   Gema Azul";
+
+        SwingUtilities.invokeLater(() -> {
+            // Usar variable final
+            final JFrame parentFrame = this;
+
+            JTextArea inventoryArea = new JTextArea(inventory);
+            inventoryArea.setFont(new Font("Courier New", Font.PLAIN, 12));
+            inventoryArea.setEditable(false);
+
+            JScrollPane scrollPane = new JScrollPane(inventoryArea);
+            scrollPane.setPreferredSize(new Dimension(400, 300));
+
+            JOptionPane.showMessageDialog(parentFrame, scrollPane, "INVENTARIO", JOptionPane.INFORMATION_MESSAGE);
+        });
+    }
+
+    // ========== MÉTODOS ADICIONALES PÚBLICOS ==========
+
+    /**
+     * Actualiza el nivel del jugador
+     * @param newLevel Nuevo nivel
+     */
+    public void updateLevel(int newLevel) {
+        level = newLevel;
+        levelLabel.setText("Nivel: " + newLevel);
+    }
+
+    /**
+     * Actualiza la experiencia del jugador
+     * @param currentExp Experiencia actual
+     * @param maxExp Experiencia máxima para el nivel
+     */
+    public void updateExperience(int currentExp, int maxExp) {
+        experience = currentExp;
+        expLabel.setText("Exp: " + currentExp + "/" + maxExp);
+    }
+
+    /**
+     * Actualiza el oro del jugador
+     * @param newGold Cantidad de oro
+     */
+    public void updateGold(int newGold) {
+        gold = newGold;
+        goldLabel.setText("Oro: " + newGold);
+    }
+
+    /**
+     * Actualiza el turno actual
+     * @param turn Número de turno
+     */
+    public void updateTurn(int turn) {
+        currentTurn = turn;
+        turnLabel.setText("Turno: " + turn);
+    }
+
+    /**
+     * Limpia el área de diálogo
+     */
+    public void clearDialogue() {
+        dialogueArea.setText("");
+    }
+
+    /**
+     * Muestra un mensaje en el área de diálogo
+     * @param message Mensaje a mostrar
+     */
+    public void showMessage(String message) {
+        addDialogue(message);
+    }
+
+    // ========== MÉTODO MAIN PARA PRUEBAS ==========
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
